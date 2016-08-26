@@ -1,2 +1,2 @@
 # LD36
-Ludum Dare 36 repo for the team of Thunderous Echo and Lolfrad
+Ludum Dare 36 repo for Team Timezone (Thunderous Echo and Lolfrad)
