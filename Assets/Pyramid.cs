@@ -3,118 +3,85 @@ using System.Collections;
 using System.Collections.Generic;
 
 public class Pyramid : MonoBehaviour {
+    const float movementSpeed = 4;
 
-    const float movementSpeed = 2;
+    public bool isPlayer = false;
+    public Pyramid player;
 
-    LinkedList<Vector2> pathRight = new LinkedList<Vector2>();
-    LinkedList<Vector2> pathLeft = new LinkedList<Vector2>();
+    public MeshFilter filter;
+    public Rigidbody2D body;
 
-    public MeshFilter pathMesh;
+    static Vector3[] verts = {
+        new Vector3(0, 0, -1),
+        new Vector3(1, 1, 0),
+        new Vector3(-1, 1, 0),
 
-    float lastPathAdd = 0;
-    sbyte lastAng = -5;
+        new Vector3(0, 0, -1),
+        new Vector3(-1, 1, 0),
+        new Vector3(-1, -1, 0),
+
+        new Vector3(0, 0, -1),
+        new Vector3(-1, -1, 0),
+        new Vector3(1, -1, 0),
+
+        new Vector3(0, 0, -1),
+        new Vector3(1, -1, 0),
+        new Vector3(1, 1, 0)
+    };
+
+    static Vector2[] uvs = {
+        new Vector2(0.5f, 1),
+        new Vector2(0, 0),
+        new Vector2(1, 0),
+
+        new Vector2(0.5f, 1),
+        new Vector2(0, 0),
+        new Vector2(1, 0),
+
+        new Vector2(0.5f, 1),
+        new Vector2(0, 0),
+        new Vector2(1, 0),
+
+        new Vector2(0.5f, 1),
+        new Vector2(0, 0),
+        new Vector2(1, 0)
+    };
+
+    static int[] tris= {
+        0, 2, 1,
+        3, 5, 4,
+        6, 8, 7,
+        9, 11, 10
+    };
+
+    void Start() {
+        Mesh m = new Mesh();
+        m.vertices = verts;
+        m.triangles = tris;
+        m.uv = uvs;
+        m.RecalculateNormals();
+        m.RecalculateBounds();
+        m.Optimize();
+        filter.mesh = m;
+    }
 
     void Update() {
-
-        if (pathRight.Count > 64) {
-            pathRight.RemoveLast();
-            pathLeft.RemoveLast();
-        }
-            
-        Vector2 motion = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")) * Time.deltaTime * movementSpeed;
-        if (motion != Vector2.zero) {
-            transform.Translate(motion);
-
-            float angle = Mathf.Atan2(motion.y, motion.x) * Mathf.Rad2Deg;
-
-            Debug.Log(angle);
-
-            if (angle > 0) {
-                if (angle < 90)
-                    addPoints(0);
-                else
-                    addPoints(1);
-            } else {
-                if (angle > -90)
-                    addPoints(-1);
-                else
-                    addPoints(-2);
-            }
-
-            Mesh m = new Mesh();
-            Vector3[] points = new Vector3[pathRight.Count * 2];
-
-            var pointsR = pathRight.GetEnumerator();
-            var pointsL = pathLeft.GetEnumerator();
-
-            List<int> tris = new List<int>();
-
-            for (int i = 0; i < pathRight.Count * 2; i += 2) {
-
-                pointsR.MoveNext();
-                points[i] = pointsR.Current;
-
-                pointsL.MoveNext();
-                points[i + 1] = pointsL.Current;
-
-                if (i < (pathRight.Count - 1) * 2) {
-                    tris.Add(i);
-                    tris.Add(i + 1);
-                    tris.Add(i + 2);
-
-                    tris.Add(i + 1);
-                    tris.Add(i + 3);
-                    tris.Add(i + 2);
-                    
-                }
-            }
-
-            m.vertices = points;
-            m.triangles = tris.ToArray();
-            m.RecalculateBounds();
-            m.RecalculateNormals();
-            m.Optimize();
-            pathMesh.mesh = m;
-
-            if (Time.time - lastPathAdd > 0.25f) {
-                lastPathAdd = Time.time;
-            } else {
-                pathLeft.RemoveFirst();
-                pathRight.RemoveFirst();
-            }
-        }
-    }
-
-    void addPoints(sbyte angId) {
-
-        /*if (lastAng != angId) {
-            if (lastAng != -5) {
-                Vector2 lastLeftPoint = getLeftPoint(lastAng);
-
-                pathRight.AddFirst(transform.position - (Vector3)lastLeftPoint);
-                pathLeft.AddFirst(transform.position + (Vector3)lastLeftPoint);
-            }
-            lastAng = angId;
-        }*/
-
-        Vector2 leftPoint = getLeftPoint(angId);
-
-        pathRight.AddFirst(transform.position - (Vector3)leftPoint);
-        pathLeft.AddFirst(transform.position + (Vector3)leftPoint);
-    }
-
-    Vector2 getLeftPoint(sbyte angId) {
-        switch (angId) {
-            case 0:
-                return new Vector2(0.5f, -0.5f);
-            case 1:
-                return new Vector2(0.5f, 0.5f);
-            case -1:
-                return new Vector2(-0.5f, -0.5f);
-            case -2:
-                return new Vector2(-0.5f, 0.5f);
+        if (isPlayer) {
+            Vector2 motion = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")) * Time.deltaTime * movementSpeed;
+            body.MovePosition((Vector2)transform.position + motion);
         }
 
-        throw new System.Exception(angId + " is not a valid input value for getLeftPoint().");
+        float distToMouse = Vector2.Distance(Input.mousePosition, Camera.main.WorldToScreenPoint(transform.position));
+        distToMouse /= Screen.height;
+        distToMouse *= 8;
+        if (distToMouse < 1) {
+            filter.transform.localScale = Vector3.zero;
+        } else if (distToMouse < 2) {
+            filter.transform.localScale = Vector3.one * (distToMouse - 1) * 0.5f;
+            filter.transform.localPosition = -Vector3.forward * (2-distToMouse) * 4;
+        } else {
+            filter.transform.localScale = Vector3.one * 0.5f;
+            filter.transform.localPosition = Vector3.zero;
+        }
     }
 }
